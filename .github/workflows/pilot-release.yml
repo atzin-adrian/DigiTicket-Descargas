@@ -1,0 +1,80 @@
+name: Release signed Android pilot
+on:
+  push:
+    branches: [main]
+    paths: ['pilot/version.json', 'pilot/signature.patch']
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: publish-android-pilot
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve the tested candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id=$(jq -er '.build_run | numbers' pilot/version.json)
+          commit=$(jq -er .source_commit pilot/version.json)
+          tag=$(jq -er .tag pilot/version.json)
+          [[ "$commit" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$RUNNER_TEMP/build.json"
+          jq -e --arg commit "$commit" '.conclusion == "success" and .head_branch == "main" and .head_sha == $commit and .path == ".github/workflows/android.yml"' "$RUNNER_TEMP/build.json"
+          gh run download "$run_id" --name digiticket-unsigned-release --dir "$RUNNER_TEMP/candidate"
+          cp "$RUNNER_TEMP/candidate/app-pilot-unsigned.apk" "$RUNNER_TEMP/DigiTicket.apk"
+          echo "PILOT_TAG=$tag" >> "$GITHUB_ENV"
+          echo "PILOT_COMMIT=$commit" >> "$GITHUB_ENV"
+      - name: Prepare public build bytes for offline signing
+        if: ${{ hashFiles('pilot/signature.patch') == '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          sha256sum DigiTicket.apk
+          split -b 192K -d -a 4 DigiTicket.apk apk-part-
+          for part in apk-part-*; do
+            base64 -w0 "$part" | jq -Rs '{encoding:"base64",content:.}' > part.json
+            blob=$(gh api --method POST "repos/$GITHUB_REPOSITORY/git/blobs" --input part.json --jq .sha)
+            echo "SIGNING_PART $part $blob"
+          done
+      - name: Verify signature and publish prerelease
+        if: ${{ hashFiles('pilot/signature.patch') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          mkdir signed-pilot && mv DigiTicket.apk signed-pilot/ && cd signed-pilot
+          git init -q
+          git add -f DigiTicket.apk
+          git apply --binary "$GITHUB_WORKSPACE/pilot/signature.patch"
+          printf '%s  DigiTicket.apk\n' "$(jq -er .sha256 "$GITHUB_WORKSPACE/pilot/version.json")" | sha256sum -c -
+          tools_dir=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -1 | xargs dirname)
+          "$tools_dir/apksigner" verify --verbose --print-certs DigiTicket.apk | tee signer.txt
+          fingerprint=$(jq -er .certificate_sha256 "$GITHUB_WORKSPACE/pilot/version.json")
+          grep -Fxi "Signer #1 certificate SHA-256 digest: $fingerprint" signer.txt
+          "$tools_dir/aapt" dump badging DigiTicket.apk > manifest.txt
+          head -1 manifest.txt > package.txt
+          grep -F "name='mx.digiticket.app.beta'" package.txt
+          grep -F "versionName='${PILOT_TAG#v}'" package.txt
+          asset="DigiTicket-${PILOT_TAG#v}.apk"
+          mv DigiTicket.apk "$asset"
+          sha256sum "$asset" > SHA256SUMS.txt
+          if gh release view "$PILOT_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,assets > existing.json 2>/dev/null; then
+            digest="sha256:$(sha256sum "$asset" | cut -d' ' -f1)"
+            jq -e --arg name "$asset" --arg digest "$digest" '.isDraft == false and .isPrerelease == true and any(.assets[]; .name == $name and .digest == $digest)' existing.json
+            exit 0
+          fi
+          gh release create "$PILOT_TAG" "$asset" SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$PILOT_COMMIT" --prerelease --title "DigiTicket ${PILOT_TAG#v} para Android" --notes-file "$GITHUB_WORKSPACE/pilot/NOTAS.md"
