@@ -2,7 +2,7 @@ name: Release signed Android pilot
 on:
   push:
     branches: [main]
-    paths: ['pilot/version.json', 'pilot/signature.patch']
+    paths: ['pilot/version.json', 'pilot/signature.patch', '.github/workflows/pilot-release.yml']
   workflow_dispatch:
 
 permissions:
@@ -45,7 +45,7 @@ jobs:
           sha256sum DigiTicket.apk
           split -b 192K -d -a 4 DigiTicket.apk apk-part-
           for part in apk-part-*; do
-            base64 -w0 "$part" | jq -Rs '{encoding:"base64",content:.}' > part.json
+            base64 -w0 "$part" | jq -Rs '{encoding:"utf-8",content:.}' > part.json
             blob=$(gh api --method POST "repos/$GITHUB_REPOSITORY/git/blobs" --input part.json --jq .sha)
             echo "SIGNING_PART $part $blob"
           done
