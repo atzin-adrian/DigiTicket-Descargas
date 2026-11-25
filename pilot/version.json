@@ -1,5 +1,7 @@
 {
   "tag": "v0.1.0-beta.1",
   "build_run": 45446732661,
-  "source_commit": "1119858f68fd3fe81ecd9c71365925f49271cabc"
+  "source_commit": "1119858f68fd3fe81ecd9c71365925f49271cabc",
+  "sha256": "130a6bc4a3ebd8923413927ab07e88edc326f3a53a483dd8a59b95276d2e8dbb",
+  "certificate_sha256": "b6396f934409a808ce5fc9205805ff2214a2eac1ddcef7852c901acc4bea1528"
 }

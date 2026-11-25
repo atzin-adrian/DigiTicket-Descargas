@@ -49,7 +49,7 @@ jobs:
             blob=$(gh api --method POST "repos/$GITHUB_REPOSITORY/git/blobs" --input part.json --jq .sha)
             echo "SIGNING_PART $part $blob"
           done
-      - name: Verify signature and publish prerelease
+      - name: Verify signed package
         if: ${{ hashFiles('pilot/signature.patch') != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -72,9 +72,36 @@ jobs:
           asset="DigiTicket-${PILOT_TAG#v}.apk"
           mv DigiTicket.apk "$asset"
           sha256sum "$asset" > SHA256SUMS.txt
+      - name: Enable emulator acceleration
+        if: ${{ hashFiles('pilot/signature.patch') != '' }}
+        run: if [ -e /dev/kvm ]; then sudo chmod a+rw /dev/kvm; fi
+      - name: Install and open the signed beta on Android
+        if: ${{ hashFiles('pilot/signature.patch') != '' }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          script: bash "$GITHUB_WORKSPACE/pilot/check-install.sh"
+      - name: Publish the verified APK
+        if: ${{ hashFiles('pilot/signature.patch') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/signed-pilot"
+          asset="DigiTicket-${PILOT_TAG#v}.apk"
           if gh release view "$PILOT_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,assets > existing.json 2>/dev/null; then
             digest="sha256:$(sha256sum "$asset" | cut -d' ' -f1)"
             jq -e --arg name "$asset" --arg digest "$digest" '.isDraft == false and .isPrerelease == true and any(.assets[]; .name == $name and .digest == $digest)' existing.json
             exit 0
           fi
           gh release create "$PILOT_TAG" "$asset" SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$PILOT_COMMIT" --prerelease --title "DigiTicket ${PILOT_TAG#v} para Android" --notes-file "$GITHUB_WORKSPACE/pilot/NOTAS.md"
+      - name: Check the public download without credentials
+        if: ${{ hashFiles('pilot/signature.patch') != '' }}
+        run: |
+          set -euo pipefail
+          asset="DigiTicket-${PILOT_TAG#v}.apk"
+          curl -q --fail --location --silent --show-error --retry 4 --retry-all-errors --retry-max-time 60 \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$PILOT_TAG/$asset" -o "$RUNNER_TEMP/public-download.apk"
+          printf '%s  %s\n' "$(jq -er .sha256 pilot/version.json)" "$RUNNER_TEMP/public-download.apk" | sha256sum -c -

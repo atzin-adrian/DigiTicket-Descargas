@@ -1,0 +1,41 @@
+name: Resultado de una prueba de DigiTicket
+description: Cuéntanos qué ocurrió durante la prueba de la beta en tu Android.
+title: "[Beta] "
+body:
+  - type: markdown
+    attributes:
+      value: Este reporte será público. Describe el caso con datos inventados y conserva tus tickets y archivos de Excel en tu teléfono.
+  - type: input
+    id: dispositivo
+    attributes:
+      label: Teléfono y versión
+      placeholder: Ej. Motorola G54, Android 14, DigiTicket 0.1.0-beta.1
+    validations:
+      required: true
+  - type: dropdown
+    id: paso
+    attributes:
+      label: ¿Qué probaste?
+      options:
+        - Instalación o actualización
+        - Registro manual de venta o gasto
+        - Foto de ticket impreso
+        - Foto de nota a mano
+        - Revisión o corrección
+        - Historial y resultado mensual
+        - Exportación a Excel
+        - Otro paso
+    validations:
+      required: true
+  - type: textarea
+    id: resultado
+    attributes:
+      label: ¿Qué ocurrió?
+      description: Incluye los pasos, qué esperabas y qué obtuviste. También puedes reportar una prueba que salió bien.
+    validations:
+      required: true
+  - type: input
+    id: correccion
+    attributes:
+      label: Si usaste una foto, ¿qué corregiste y cuánto tiempo te tomó?
+      placeholder: Ej. Corregí la fecha y el total de una nota a mano en unos 25 segundos.
