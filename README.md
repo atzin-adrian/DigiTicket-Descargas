@@ -4,7 +4,9 @@ Beta para comerciantes que quieren llevar un registro de sus ventas y gastos en 
 
 ## Probar la beta
 
-Los instaladores firmados se distribuyen en [Versiones de DigiTicket](https://github.com/atzin-adrian/DigiTicket-Descargas/releases). Abre la versión más reciente desde un teléfono con Android 8 o posterior y descarga el archivo terminado en `.apk`. Android puede pedir permiso al navegador para instalarlo. El paquete de prueba es `mx.digiticket.app.beta`.
+**[Descargar DigiTicket 0.1.0-beta.1 para Android](https://github.com/atzin-adrian/DigiTicket-Descargas/releases/download/v0.1.0-beta.1/DigiTicket-0.1.0-beta.1.apk)** · Android 8 o posterior · 9.6 MB.
+
+Abre el enlace desde el teléfono, toca el archivo descargado y selecciona **Instalar**. Si Android te pide permiso para instalar desde tu navegador, puedes concederlo para esta instalación y retirarlo después. El paquete de la beta es `mx.digiticket.app.beta`. Encontrarás la suma SHA-256 y el historial de instaladores en [Versiones](https://github.com/atzin-adrian/DigiTicket-Descargas/releases).
 
 ## Primera prueba
 
@@ -13,7 +15,7 @@ Los instaladores firmados se distribuyen en [Versiones de DigiTicket](https://gi
 3. Revisa la foto, corrige el total y confirma el movimiento. Comprueba el cambio en Inicio y búscalo en Historial.
 4. En Excel elige el mes y guarda o comparte el archivo. Compara la hoja Resumen con la pantalla de Inicio. Movimientos identifica el estado de cada registro y Productos muestra las partidas que capturaste.
 
-Para comentar un problema, abre una [incidencia](https://github.com/atzin-adrian/DigiTicket-Descargas/issues). Indica el modelo del teléfono, su versión de Android y el paso en que ocurrió. Usa datos inventados si necesitas ilustrarlo.
+Para comentar un problema, completa el [reporte de prueba](https://github.com/atzin-adrian/DigiTicket-Descargas/issues/new?template=prueba-beta.yml). Indica el modelo del teléfono, su versión de Android y el paso en que ocurrió. Usa datos inventados si necesitas ilustrarlo.
 
 ## Datos y lectura de tickets
 
