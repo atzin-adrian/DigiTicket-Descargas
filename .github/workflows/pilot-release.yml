@@ -64,7 +64,8 @@ jobs:
           tools_dir=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -1 | xargs dirname)
           "$tools_dir/apksigner" verify --verbose --print-certs DigiTicket.apk | tee signer.txt
           fingerprint=$(jq -er .certificate_sha256 "$GITHUB_WORKSPACE/pilot/version.json")
-          grep -Fxi "Signer #1 certificate SHA-256 digest: $fingerprint" signer.txt
+          actual=$(awk '/certificate SHA-256 digest:/ { print $NF }' signer.txt | sort -u)
+          test "$actual" = "$fingerprint"
           "$tools_dir/aapt" dump badging DigiTicket.apk > manifest.txt
           head -1 manifest.txt > package.txt
           grep -F "name='mx.digiticket.app.beta'" package.txt
